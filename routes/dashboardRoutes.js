@@ -41,15 +41,32 @@ router.get("/progress/:userId", async (req, res) => {
 /* -------------------- POST Routes -------------------- */
 
 // Add a new meal
-router.post("/meals", async (req, res) => {
+// Add or update meal plan
+router.post("/meals/:userId", async (req, res) => {
   try {
-    const meal = new Meal(req.body);
-    await meal.save();
-    res.status(201).json(meal);
+    const { meals } = req.body;
+
+    let mealPlan = await MealPlan.findOne({ userId: req.params.userId });
+
+    if (mealPlan) {
+      // Update existing
+      mealPlan.meals = meals;
+      await mealPlan.save();
+    } else {
+      // Create new
+      mealPlan = new MealPlan({
+        userId: req.params.userId,
+        meals
+      });
+      await mealPlan.save();
+    }
+
+    res.json(mealPlan);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 // Add a new workout
 router.post("/workouts", async (req, res) => {
