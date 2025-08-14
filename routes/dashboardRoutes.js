@@ -26,13 +26,13 @@ router.get("/meals/:userId", async (req, res) => {
 // Get workouts for a user
 router.get("/workouts/:userId", async (req, res) => {
   try {
-    const { userId } = req.params;
-    const workouts = await Workout.find({ userId }); // fetch workouts for that user
-    res.status(200).json(workouts);
+    const plan = await Workout.findOne({ userId: req.params.userId });
+    res.json(plan || { workouts: [] });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 
 // Get progress for a user
@@ -78,21 +78,23 @@ router.post("/meals/:userId", async (req, res) => {
 // POST /workouts/:userId
 router.post("/workouts/:userId", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { workouts } = req.body;
 
-    const workout = new Workout({
-      userId,
-      workoutName: req.body.workoutName,
-      exercises: req.body.exercises // should be an array of { name, sets, reps }
+    if (!Array.isArray(workouts) || workouts.length === 0) {
+      return res.status(400).json({ message: "Workouts array is required" });
+    }
+
+    const savedWorkoutPlan = new Workout({
+      userId: req.params.userId,
+      workouts
     });
 
-    await workout.save();
-    res.status(201).json(workout);
+    await savedWorkoutPlan.save();
+    res.status(201).json(savedWorkoutPlan);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
-
 
 // Add new progress entry
 router.post("/progress", async (req, res) => {
@@ -105,15 +107,9 @@ router.post("/progress", async (req, res) => {
   }
 });
 
-// Delete meal plan for a user
-// router.delete("/meals/:userId", async (req, res) => {
-//   try {
-//     await MealPlan.findOneAndDelete({ userId: req.params.userId });
-//     res.json({ message: "Meal plan deleted" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
+
+
+// delete routers 
 
 // DELETE meals for a user
 router.delete("/meals/:userId", async (req, res) => {
@@ -123,6 +119,22 @@ router.delete("/meals/:userId", async (req, res) => {
     res.json({ message: "Meal plan deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+
+// backend/routes/dashboardRoutes.js
+router.delete("/workouts/:userId", async (req, res) => {
+  try {
+    const deleted = await Workout.findOneAndDelete({ userId: req.params.userId });
+
+    if (!deleted) {
+      return res.status(404).json({ message: "No workout plan found for this user" });
+    }
+
+    res.json({ message: "Workout plan deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
