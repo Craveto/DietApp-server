@@ -26,12 +26,14 @@ router.get("/meals/:userId", async (req, res) => {
 // Get workouts for a user
 router.get("/workouts/:userId", async (req, res) => {
   try {
-    const workouts = await Workout.find({ userId: req.params.userId });
-    res.json(workouts);
+    const { userId } = req.params;
+    const workouts = await Workout.find({ userId }); // fetch workouts for that user
+    res.status(200).json(workouts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // Get progress for a user
 router.get("/progress/:userId", async (req, res) => {
@@ -73,15 +75,24 @@ router.post("/meals/:userId", async (req, res) => {
 
 
 // Add a new workout
-router.post("/workouts", async (req, res) => {
+// POST /workouts/:userId
+router.post("/workouts/:userId", async (req, res) => {
   try {
-    const workout = new Workout(req.body);
+    const { userId } = req.params;
+
+    const workout = new Workout({
+      userId,
+      workoutName: req.body.workoutName,
+      exercises: req.body.exercises // should be an array of { name, sets, reps }
+    });
+
     await workout.save();
     res.status(201).json(workout);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
+
 
 // Add new progress entry
 router.post("/progress", async (req, res) => {
