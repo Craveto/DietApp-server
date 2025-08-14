@@ -9,14 +9,19 @@ const router = express.Router();
 /* -------------------- GET Routes -------------------- */
 
 // Get meals for a user
+// GET meals for a user
 router.get("/meals/:userId", async (req, res) => {
+    console.log("GET /meals called with userId:", req.params.userId);
   try {
     const meals = await Meal.find({ userId: req.params.userId });
-    res.json(meals);
+    res.json({ meals });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
+
+
+
 
 // Get workouts for a user
 router.get("/workouts/:userId", async (req, res) => {
@@ -42,30 +47,29 @@ router.get("/progress/:userId", async (req, res) => {
 
 // Add a new meal
 // Add or update meal plan
+// POST (create/update) meals for a user
 router.post("/meals/:userId", async (req, res) => {
+    console.log("POST /meals called");
+  console.log("Params:", req.params);
+  console.log("Body:", req.body);
   try {
     const { meals } = req.body;
-
-    let mealPlan = await MealPlan.findOne({ userId: req.params.userId });
-
-    if (mealPlan) {
-      // Update existing
-      mealPlan.meals = meals;
-      await mealPlan.save();
-    } else {
-      // Create new
-      mealPlan = new MealPlan({
-        userId: req.params.userId,
-        meals
-      });
-      await mealPlan.save();
+    if (!meals || !Array.isArray(meals)) {
+      return res.status(400).json({ error: "Meals must be an array" });
     }
 
-    res.json(mealPlan);
+    // Remove old meals & insert new ones
+    await Meal.deleteMany({ userId: req.params.userId });
+    const newMeals = meals.map((m) => ({ ...m, userId: req.params.userId }));
+    const savedMeals = await Meal.insertMany(newMeals);
+
+    res.json({ meals: savedMeals });
   } catch (err) {
+    console.error("POST /meals error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // Add a new workout
@@ -89,5 +93,27 @@ router.post("/progress", async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
+// Delete meal plan for a user
+// router.delete("/meals/:userId", async (req, res) => {
+//   try {
+//     await MealPlan.findOneAndDelete({ userId: req.params.userId });
+//     res.json({ message: "Meal plan deleted" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// DELETE meals for a user
+router.delete("/meals/:userId", async (req, res) => {
+    console.log("DELETE /meals called with userId:", req.params.userId);
+  try {
+    await Meal.deleteMany({ userId: req.params.userId });
+    res.json({ message: "Meal plan deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;
